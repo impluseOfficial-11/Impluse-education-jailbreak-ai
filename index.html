@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMPULSE — Pengenalan Jailbreak AI</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        body {
+            background: #000;
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        /* ===== INTRO SCREEN ===== */
+        #intro-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 1.2s ease;
+        }
+        #intro-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .intro-particles-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        .intro-center {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+        .intro-logo-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0;
+            animation: introImgIn 1.5s ease forwards 0.5s;
+            filter: drop-shadow(0 0 30px rgba(255,255,255,0.3));
+        }
+        @keyframes introImgIn {
+            0% { opacity: 0; transform: scale(0.3) rotate(-180deg); }
+            70% { opacity: 1; transform: scale(1.1) rotate(10deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        .intro-logo-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 72px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 18px;
+            opacity: 0;
+            animation: introTextIn 2s ease forwards 1.2s;
+            text-shadow: 0 0 60px rgba(255,255,255,0.3);
+        }
+        @keyframes introTextIn {
+            0% { opacity: 0; transform: translateY(40px) scale(0.8); letter-spacing: 50px; }
+            60% { opacity: 1; transform: translateY(-5px) scale(1.02); letter-spacing: 15px; }
+            100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 18px; }
+        }
+        .intro-tagline {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            color: #555;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: introFadeUp 1s ease forwards 2.5s;
+        }
+        .intro-line-h {
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            animation: introLineGrow 1.8s ease forwards 2s;
+        }
+        @keyframes introLineGrow {
+            to { width: 350px; }
+        }
+        @keyframes introFadeUp {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .intro-loader-dots {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            animation: introFadeUp 1s ease forwards 3s;
+        }
+        .intro-loader-dots span {
+            width: 6px; height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            animation: dotPulse 1.4s ease-in-out infinite;
+        }
+        .intro-loader-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .intro-loader-dots span:nth-child(3) { animation-delay: 0.3s; }
+        .intro-loader-dots span:nth-child(4) { animation-delay: 0.45s; }
+        .intro-loader-dots span:nth-child(5) { animation-delay: 0.6s; }
+        @keyframes dotPulse {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        .intro-glitch-flash {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #fff;
+            opacity: 0;
+            z-index: 10;
+            animation: glitchFlash 0.15s ease forwards 4.2s;
+        }
+        @keyframes glitchFlash {
+            0% { opacity: 0; }
+            30% { opacity: 0.4; }
+            100% { opacity: 0; }
+        }
+
+        /* ===== MAIN APP ===== */
+        #main-app {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        #main-app.visible { display: block; }
+
+        /* ===== BG CANVAS ===== */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* ===== DATA STREAM BG ===== */
+        .data-stream-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .data-column {
+            position: absolute;
+            top: -100%;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.03);
+            line-height: 1.6;
+            animation: dataFall linear infinite;
+            white-space: nowrap;
+        }
+        @keyframes dataFall {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(200vh); }
+        }
+
+        /* ===== FLOATING CODE ===== */
+        .floating-code {
+            position: fixed;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: rgba(255,255,255,0.03);
+            pointer-events: none;
+            z-index: 1;
+            white-space: pre;
+        }
+
+        /* ===== SCANLINE ===== */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px
+            );
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* ===== LANDING PAGE ===== */
+        #landing-page {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 0 60px 0 70px;
+            opacity: 0;
+            animation: fadeInPage 1.2s ease forwards 0.3s;
+        }
+        @keyframes fadeInPage {
+            to { opacity: 1; }
+        }
+
+        .landing-left {
+            flex: 1;
+            max-width: 52%;
+            padding-right: 40px;
+            z-index: 5;
+        }
+        .landing-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            height: 100%;
+            z-index: 5;
+        }
+
+        /* ===== LOGO + BADGE ===== */
+        .site-logo-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .site-logo-img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.15);
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+        }
+        .site-logo-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 5px;
+        }
+
+        .disclaimer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            color: #777;
+            margin-bottom: 22px;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .disclaimer-badge .dot {
+            width: 6px; height: 6px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,80,0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+        }
+
+        .main-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 46px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.15;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        .main-title .highlight {
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .main-title-sub {
+            font-family: 'Orbitron', monospace;
+            font-size: 15px;
+            color: #444;
+            letter-spacing: 5px;
+            margin-bottom: 22px;
+            text-transform: uppercase;
+        }
+        .main-description {
+            font-size: 16px;
+            color: #999;
+            line-height: 1.9;
+            margin-bottom: 30px;
+            max-width: 480px;
+            font-weight: 300;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+        }
+        .btn-primary {
+            padding: 13px 32px;
+            background: #fff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,255,255,0.2);
+        }
+        .btn-secondary {
+            padding: 13px 32px;
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        .btn-secondary:hover {
+            border-color: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.05);
+            transform: translateY(-2px);
+        }
+
+        /* ===== CHAPTER LIST ===== */
+        .chapter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chapter-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .chapter-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 3px; height: 100%;
+            background: #fff;
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        .chapter-item:hover::before { transform: scaleY(1); }
+        .chapter-item:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.12);
+            transform: translateX(5px);
+        }
+        .chapter-item.locked {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .chapter-item.locked:hover {
+            transform: none;
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.05);
+        }
+        .chapter-item.locked:hover::before { transform: scaleY(0); }
+        .chapter-item.completed { border-color: rgba(76,175,80,0.25); }
+        .chapter-item.completed::before {
+            background: #4CAF50;
+            transform: scaleY(1);
+        }
+        .chapter-num {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.12);
+            min-width: 40px;
+        }
+        .chapter-info h4 {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            color: #ccc;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .chapter-info p {
+            font-size: 12px;
+            color: #555;
+        }
+        .chapter-status {
+            margin-left: auto;
+            font-size: 16px;
+        }
+
+        /* ===== ROBOT SECTION ===== */
+        .robot-container {
+            position: relative;
+            width: 420px;
+            height: 600px;
+        }
+        .robot-glow-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px; height: 350px;
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 50%;
+            animation: glowRingPulse 4s ease-in-out infinite;
+        }
+        .robot-glow-ring:nth-child(2) {
+            width: 400px; height: 400px;
+            animation-delay: 1s;
+            border-color: rgba(255,255,255,0.02);
+        }
+        .robot-glow-ring:nth-child(3) {
+            width: 450px; height: 450px;
+            animation-delay: 2s;
+            border-color: rgba(255,255,255,0.01);
+        }
+        @keyframes glowRingPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.5; }
+        }
+
+        .robot-floor-glow {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 280px; height: 50px;
+            background: radial-gradient(ellipse, rgba(255,255,255,0.08), transparent);
+            border-radius: 50%;
+            animation: floorGlow 3s ease-in-out infinite;
+        }
+        @keyframes floorGlow {
+            0%, 100% { opacity: 0.6; transform: translateX(-50%) scaleX(1); }
+            50% { opacity: 1; transform: translateX(-50%) scaleX(1.1); }
+        }
+
+        .robot-main {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: robotIdle 5s ease-in-out infinite;
+            filter: drop-shadow(0 0 40px rgba(255,255,255,0.08));
+        }
+        @keyframes robotIdle {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-12px); }
+        }
+
+        /* Books */
+        .book-float {
+            position: absolute;
+            width: 72px;
+            height: 92px;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 7px;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            line-height: 1.3;
+        }
+        .book-float:hover {
+            transform: scale(1.15) !important;
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: 0 10px 35px rgba(255,255,255,0.08);
+        }
+        .book-spine {
+            position: absolute;
+            left: 0; top: 0;
+            width: 7px; height: 100%;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px 0 0 4px;
+        }
+        .book-float:nth-child(1) {
+            top: 50px; left: 10px;
+            animation: bFloat1 5.5s ease-in-out infinite;
+        }
+        .book-float:nth-child(2) {
+            top: 25px; right: 10px;
+            animation: bFloat2 6.2s ease-in-out infinite;
+        }
+        .book-float:nth-child(3) {
+            bottom: 130px; left: 0px;
+            animation: bFloat3 5s ease-in-out infinite;
+        }
+        .book-float:nth-child(4) {
+            bottom: 110px; right: 0px;
+            animation: bFloat4 4.8s ease-in-out infinite;
+        }
+        @keyframes bFloat1 { 0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-14px) rotate(3deg)} }
+        @keyframes bFloat2 { 0%,100%{transform:translateY(0) rotate(4deg)}50%{transform:translateY(-18px) rotate(-3deg)} }
+        @keyframes bFloat3 { 0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-12px) rotate(-4deg)} }
+        @keyframes bFloat4 { 0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-16px) rotate(5deg)} }
+
+        /* Digital particles around robot */
+        .robot-digital-particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            animation: digitalFloat 3s ease-in-out infinite;
+        }
+        @keyframes digitalFloat {
+            0%, 100% { opacity: 0; transform: translateY(0) scale(0); }
+            50% { opacity: 1; transform: translateY(-30px) scale(1); }
+        }
+
+        /* ===== READING PAGE ===== */
+        #reading-page {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 100;
+            display: none;
+            overflow: hidden;
+        }
+        #reading-page.active { display: block; }
+
+        .reading-header {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            padding: 16px 35px;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 110;
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #bbb;
+            padding: 7px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        .back-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+
+        .reading-progress-container {
+            flex: 1;
+            max-width: 350px;
+            margin: 0 25px;
+        }
+        .reading-progress-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            color: #555;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .reading-progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .reading-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #555, #fff);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .chapter-title-header {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            color: #777;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .reading-content {
+            position: absolute;
+            top: 65px; left: 0;
+            width: 100%;
+            height: calc(100% - 65px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        .reading-inner {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 50px 40px 160px;
+        }
+
+        /* ===== CHAPTER CONTENT STYLES ===== */
+        .chapter-header {
+            text-align: center;
+            margin-bottom: 55px;
+            padding-bottom: 35px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .chapter-badge {
+            display: inline-block;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            padding: 5px 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 30px;
+        }
+        .chapter-main-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 34px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+        .chapter-subtitle {
+            font-size: 15px;
+            color: #555;
+            font-style: italic;
+        }
+
+        .content-section {
+            margin-bottom: 45px;
+            opacity: 0;
+            transform: translateY(35px);
+            transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .content-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .content-section h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 19px;
+            color: #fff;
+            margin-bottom: 18px;
+            letter-spacing: 2px;
+            padding-left: 14px;
+            border-left: 3px solid rgba(255,255,255,0.25);
+        }
+        .content-section h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 15px;
+            color: #ddd;
+            margin-bottom: 13px;
+            letter-spacing: 1px;
+        }
+        .content-section p {
+            font-size: 15.5px;
+            color: #aaa;
+            line-height: 2;
+            margin-bottom: 16px;
+            font-weight: 300;
+        }
+        .content-section ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 18px;
+        }
+        .content-section ul li {
+            font-size: 14.5px;
+            color: #999;
+            line-height: 1.8;
+            padding: 7px 0 7px 22px;
+            position: relative;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+        .content-section ul li::before {
+            content: '▹';
+            position: absolute;
+            left: 0;
+            color: #fff;
+            font-size: 13px;
+        }
+        .highlight-text {
+            color: #fff !important;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px;
+            padding: 22px;
+            margin: 22px 0;
+            position: relative;
+        }
+        .info-box::before {
+            content: 'ℹ';
+            position: absolute;
+            top: -11px; left: 18px;
+            background: #0a0a0a;
+            padding: 2px 10px;
+            font-size: 13px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .category-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 18px 22px;
+            margin: 12px 0;
+            transition: all 0.3s ease;
+        }
+        .category-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.04);
+            transform: translateX(5px);
+        }
+        .category-card h4 {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: #fff;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .category-card p {
+            font-size: 13.5px;
+            color: #888;
+            margin-bottom: 0;
+        }
+
+        .impact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin: 18px 0;
+        }
+        .impact-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 18px;
+        }
+        .impact-card.positive { border-color: rgba(76,175,80,0.2); }
+        .impact-card.negative { border-color: rgba(244,67,54,0.2); }
+        .impact-card h4 {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .impact-card.positive h4 { color: #4CAF50; }
+        .impact-card.negative h4 { color: #f44336; }
+
+        /* Image decorations */
+        .content-image {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin: 20px 0;
+            opacity: 0.85;
+            transition: all 0.4s ease;
+            display: block;
+        }
+        .content-image:hover {
+            opacity: 1;
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 5px 30px rgba(255,255,255,0.05);
+        }
+        .content-image-row {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .content-image-row img {
+            flex: 1;
+            max-width: 48%;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            opacity: 0.8;
+            transition: all 0.4s ease;
+        }
+        .content-image-row img:hover {
+            opacity: 1;
+            border-color: rgba(255,255,255,0.2);
+        }
+        .image-caption {
+            text-align: center;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #444;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Visual canvas */
+        .visual-element {
+            width: 100%;
+            height: 180px;
+            margin: 25px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background: rgba(255,255,255,0.015);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ===== MINIGAME ===== */
+        .minigame-container {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 28px;
+            margin: 35px 0;
+            text-align: center;
+        }
+        .minigame-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 15px;
+            color: #fff;
+            margin-bottom: 4px;
+            letter-spacing: 2px;
+        }
+        .minigame-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 22px;
+        }
+        .quiz-question {
+            font-size: 15px;
+            color: #ccc;
+            margin-bottom: 18px;
+            line-height: 1.7;
+            text-align: left;
+            padding: 0 10px;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+        .quiz-option {
+            padding: 13px 18px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #bbb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13.5px;
+            text-align: left;
+        }
+        .quiz-option:hover {
+            border-color: rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.06);
+            transform: translateX(3px);
+        }
+        .quiz-option.correct {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.12);
+            color: #4CAF50;
+        }
+        .quiz-option.wrong {
+            border-color: #f44336;
+            background: rgba(244,67,54,0.12);
+            color: #f44336;
+        }
+        .quiz-option.disabled {
+            pointer-events: none;
+        }
+        .quiz-result {
+            margin-top: 16px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+            min-height: 20px;
+        }
+        .quiz-score {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: #555;
+            margin-top: 8px;
+            letter-spacing: 2px;
+        }
+        .quiz-next-btn {
+            margin-top: 15px;
+            padding: 10px 28px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .quiz-next-btn:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        /* Memory game */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 420px;
+            margin: 0 auto 15px;
+        }
+        .memory-card {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .memory-card:hover { border-color: rgba(255,255,255,0.2); transform: scale(1.03); }
+        .memory-card.flipped {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+        .memory-card.matched {
+            background: rgba(76,175,80,0.1);
+            border-color: rgba(76,175,80,0.3);
+        }
+        .memory-card .card-front {
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            color: #444;
+        }
+        .memory-card .card-back {
+            display: none;
+            font-size: 11px;
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            text-align: center;
+            padding: 5px;
+            line-height: 1.3;
+        }
+        .memory-card.flipped .card-front,
+        .memory-card.matched .card-front { display: none; }
+        .memory-card.flipped .card-back,
+        .memory-card.matched .card-back { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .memory-moves {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: #555;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .memory-reset-btn {
+            margin-top: 12px;
+            padding: 8px 22px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .memory-reset-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+
+        /* ===== COMPLETE ===== */
+        .complete-section {
+            text-align: center;
+            padding: 45px 0;
+            margin-top: 25px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .complete-btn {
+            padding: 14px 45px;
+            background: #fff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        .complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 35px rgba(255,255,255,0.2);
+        }
+
+        /* ===== CREDIT PAGE ===== */
+        #credit-page {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 100;
+            display: none;
+            overflow-y: auto;
+        }
+        #credit-page.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .credit-container {
+            text-align: center;
+            padding: 40px;
+        }
+        .credit-logo-img {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.15);
+            filter: drop-shadow(0 0 25px rgba(255,255,255,0.2));
+            opacity: 0;
+            animation: creditIn 1s ease forwards 0.3s;
+        }
+        .credit-logo-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 50px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 12px;
+            margin: 20px 0;
+            opacity: 0;
+            animation: creditIn 1.2s ease forwards 0.6s;
+        }
+        @keyframes creditIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .credit-divider {
+            width: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            margin: 0 auto 30px;
+            animation: creditLineGrow 1.5s ease forwards 1.2s;
+        }
+        @keyframes creditLineGrow { to { width: 280px; } }
+
+        .credit-info-block {
+            opacity: 0;
+            animation: creditIn 1s ease forwards 1.6s;
+        }
+        .credit-row {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 12px;
+        }
+        .credit-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            min-width: 180px;
+            text-align: right;
+        }
+        .credit-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            color: #ccc;
+            min-width: 180px;
+            text-align: left;
+        }
+        .credit-note {
+            margin: 30px auto 0;
+            padding: 18px 25px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            max-width: 480px;
+            opacity: 0;
+            animation: creditIn 1s ease forwards 2s;
+        }
+        .credit-note p {
+            font-size: 13.5px;
+            color: #888;
+            line-height: 1.8;
+        }
+        .credit-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 25px;
+            padding: 11px 28px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            color: #ccc;
+            text-decoration: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: creditIn 1s ease forwards 2.4s;
+        }
+        .credit-link:hover {
+            border-color: rgba(255,255,255,0.3);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .credit-thanks {
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            color: #fff;
+            letter-spacing: 5px;
+            margin-top: 35px;
+            opacity: 0;
+            animation: creditIn 1s ease forwards 2.8s;
+        }
+        .credit-back-btn {
+            margin-top: 25px;
+            padding: 9px 25px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #777;
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: creditIn 1s ease forwards 3.2s;
+        }
+        .credit-back-btn:hover { border-color: rgba(255,255,255,0.35); color: #fff; }
+
+        /* ===== MUSIC CONTROL ===== */
+        .music-control {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .music-control:hover { border-color: rgba(255,255,255,0.2); }
+
+        .music-icon {
+            font-size: 16px;
+            transition: transform 5s linear;
+        }
+        .music-icon.spinning {
+            animation: spinIcon 3s linear infinite;
+        }
+        @keyframes spinIcon {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .music-bars {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 14px;
+        }
+        .music-bar {
+            width: 2.5px;
+            background: #fff;
+            border-radius: 1px;
+            height: 3px;
+            transition: height 0.2s ease;
+        }
+        .music-bars.playing .music-bar:nth-child(1) { animation: mBar 0.7s ease-in-out infinite; }
+        .music-bars.playing .music-bar:nth-child(2) { animation: mBar 0.55s ease-in-out infinite 0.1s; }
+        .music-bars.playing .music-bar:nth-child(3) { animation: mBar 0.65s ease-in-out infinite 0.2s; }
+        .music-bars.playing .music-bar:nth-child(4) { animation: mBar 0.8s ease-in-out infinite 0.15s; }
+        @keyframes mBar {
+            0%, 100% { height: 3px; }
+            50% { height: 14px; }
+        }
+
+        .music-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: #0d0d0d;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 35px;
+            max-width: 580px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 18px;
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .modal-close:hover { color: #fff; }
+
+        .modal-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+        }
+        .faq-item {
+            margin-bottom: 18px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-q {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .faq-a {
+            font-size: 13.5px;
+            color: #888;
+            line-height: 1.8;
+        }
+        .about-text {
+            font-size: 14.5px;
+            color: #999;
+            line-height: 2;
+        }
+
+        /* ===== NOTIFICATION ===== */
+        .notification {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-80px);
+            padding: 13px 25px;
+            background: rgba(15,15,15,0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: #ccc;
+            z-index: 10000;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+        }
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            #landing-page {
+                flex-direction: column;
+                padding: 25px;
+                overflow-y: auto;
+            }
+            .landing-left { max-width: 100%; padding-right: 0; padding-top: 20px; }
+            .landing-right { display: none; }
+            .main-title { font-size: 30px; }
+            .impact-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .main-title { font-size: 24px; }
+            .main-title-sub { font-size: 11px; letter-spacing: 3px; }
+            .btn-group { flex-direction: column; }
+            .reading-inner { padding: 35px 18px 150px; }
+            .chapter-main-title { font-size: 22px; }
+            .reading-header { padding: 10px 14px; }
+            .credit-logo-text { font-size: 30px; letter-spacing: 6px; }
+            .credit-row { flex-direction: column; gap: 3px; }
+            .credit-label, .credit-value { text-align: center; min-width: auto; }
+            .memory-grid { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+            .intro-logo-text { font-size: 36px; letter-spacing: 8px; }
+            .content-image-row { flex-direction: column; }
+            .content-image-row img { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanline"></div>
+<div class="notification" id="notification"></div>
+
+<!-- ===== INTRO ===== -->
+<div id="intro-screen">
+    <canvas class="intro-particles-canvas" id="introCanvas"></canvas>
+    <div class="intro-center">
+        <img src="https://i.ibb.co.com/LdtMvwww/file-00000000a59471fa8d27bc833c770521.png" alt="Impulse" class="intro-logo-img">
+        <div class="intro-logo-text">IMPULSE</div>
+        <div class="intro-line-h"></div>
+        <div class="intro-tagline">AI Jailbreak Education Platform</div>
+        <div class="intro-loader-dots">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+    </div>
+    <div class="intro-glitch-flash"></div>
+</div>
+
+<!-- ===== MUSIC ===== -->
+<audio id="bgMusic" loop preload="auto">
+    <source src="leberch-ai-documentary-309287.mp3" type="audio/mpeg">
+</audio>
+
+<div class="music-control" id="musicControl" onclick="toggleMusic()">
+    <span class="music-icon" id="musicIcon">🎵</span>
+    <div class="music-bars" id="musicBars">
+        <div class="music-bar"></div>
+        <div class="music-bar"></div>
+        <div class="music-bar"></div>
+        <div class="music-bar"></div>
+    </div>
+    <span class="music-label" id="musicLabel">PLAY</span>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="main-app">
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Data stream columns -->
+    <div class="data-stream-overlay" id="dataStreams"></div>
+
+    <!-- ===== LANDING ===== -->
+    <div id="landing-page">
+        <div class="landing-left">
+            <div class="site-logo-row">
+                <img src="https://i.ibb.co.com/LdtMvwww/file-00000000a59471fa8d27bc833c770521.png" alt="Logo" class="site-logo-img">
+                <span class="site-logo-name">IMPULSE</span>
+            </div>
+
+            <div class="disclaimer-badge">
+                <span class="dot"></span>
+                <span>Educational Purpose Only</span>
+            </div>
+
+            <div class="main-title">
+                <span class="highlight">PENGENALAN</span><br>JAILBREAK AI
+            </div>
+            <div class="main-title-sub">by Impulse</div>
+
+            <p class="main-description">
+                Pelajari konsep, cara kerja, dampak, dan keamanan Jailbreak AI melalui pengalaman membaca interaktif yang mendalam dan futuristik.
+            </p>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="startReading()">▶ MULAI MEMBACA</button>
+                <button class="btn-secondary" onclick="showAbout()">TENTANG</button>
+                <button class="btn-secondary" onclick="showFAQ()">FAQ</button>
+            </div>
+
+            <div class="chapter-list" id="chapter-list"></div>
+        </div>
+
+        <div class="landing-right">
+            <div class="robot-container" id="robotContainer">
+                <div class="robot-glow-ring"></div>
+                <div class="robot-glow-ring"></div>
+                <div class="robot-glow-ring"></div>
+
+                <!-- Floating books -->
+                <div class="book-float"><div class="book-spine"></div>C++ Programming Principles</div>
+                <div class="book-float"><div class="book-spine"></div>C++ Data Structures</div>
+                <div class="book-float"><div class="book-spine"></div>C++ Algorithms</div>
+                <div class="book-float"><div class="book-spine"></div>C++ Advanced Concepts</div>
+
+                <!-- Digital particles -->
+                <div id="robotParticles"></div>
+
+                <!-- Robot SVG -->
+                <div class="robot-main" id="robotMain">
+                    <svg width="240" height="400" viewBox="0 0 240 400" class="robot-svg">
+                        <defs>
+                            <linearGradient id="mGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" style="stop-color:#2a2a2a"/>
+                                <stop offset="50%" style="stop-color:#3d3d3d"/>
+                                <stop offset="100%" style="stop-color:#1a1a1a"/>
+                            </linearGradient>
+                            <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" style="stop-color:#333"/>
+                                <stop offset="100%" style="stop-color:#1a1a1a"/>
+                            </linearGradient>
+                            <filter id="glow2">
+                                <feGaussianBlur stdDeviation="4" result="b"/>
+                                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <filter id="glowSoft">
+                                <feGaussianBlur stdDeviation="2" result="b"/>
+                                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Antenna -->
+                        <line x1="120" y1="18" x2="120" y2="48" stroke="#555" stroke-width="2"/>
+                        <circle cx="120" cy="13" r="5" fill="#fff" filter="url(#glow2)">
+                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+                            <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Head -->
+                        <rect x="60" y="48" width="120" height="85" rx="18" fill="url(#mGrad)" stroke="#555" stroke-width="1.5"/>
+                        <!-- Visor -->
+                        <rect x="76" y="64" width="88" height="28" rx="14" fill="#0a0a0a" stroke="#444" stroke-width="1"/>
+                        <!-- Eyes -->
+                        <circle id="eyeL" cx="98" cy="78" r="7" fill="#fff" filter="url(#glow2)">
+                            <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle id="eyeR" cx="142" cy="78" r="7" fill="#fff" filter="url(#glow2)">
+                            <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <!-- Mouth -->
+                        <rect x="100" y="100" width="40" height="3" rx="1.5" fill="#444"/>
+                        <rect x="106" y="106" width="28" height="2" rx="1" fill="#333"/>
+                        <!-- Ear panels -->
+                        <rect x="50" y="65" width="10" height="30" rx="5" fill="#333" stroke="#444" stroke-width="0.5"/>
+                        <rect x="180" y="65" width="10" height="30" rx="5" fill="#333" stroke="#444" stroke-width="0.5"/>
+
+                        <!-- Neck -->
+                        <rect x="102" y="133" width="36" height="22" rx="6" fill="url(#mGrad)" stroke="#444" stroke-width="1"/>
+
+                        <!-- Body -->
+                        <rect x="42" y="155" width="156" height="140" rx="22" fill="url(#bodyGrad)" stroke="#555" stroke-width="1.5"/>
+                        <!-- Chest plate -->
+                        <rect x="68" y="175" width="104" height="65" rx="12" fill="#151515" stroke="#444" stroke-width="1"/>
+                        <!-- Core -->
+                        <circle cx="120" cy="207" r="18" fill="#111" stroke="#555" stroke-width="1"/>
+                        <circle cx="120" cy="207" r="10" fill="rgba(255,255,255,0.15)" filter="url(#glow2)">
+                            <animate attributeName="r" values="7;12;7" dur="2.5s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity" values="0.15;0.4;0.15" dur="2.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="120" cy="207" r="4" fill="rgba(255,255,255,0.5)" filter="url(#glowSoft)"/>
+                        <!-- Chest details -->
+                        <line x1="82" y1="250" x2="158" y2="250" stroke="#333" stroke-width="1"/>
+                        <line x1="88" y1="258" x2="152" y2="258" stroke="#2a2a2a" stroke-width="1"/>
+                        <line x1="94" y1="266" x2="146" y2="266" stroke="#222" stroke-width="1"/>
+                        <line x1="100" y1="274" x2="140" y2="274" stroke="#1e1e1e" stroke-width="1"/>
+
+                        <!-- Shoulders -->
+                        <circle cx="42" cy="165" r="12" fill="#333" stroke="#555" stroke-width="1"/>
+                        <circle cx="198" cy="165" r="12" fill="#333" stroke="#555" stroke-width="1"/>
+
+                        <!-- Left Arm -->
+                        <rect x="14" y="167" width="28" height="95" rx="14" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <rect x="17" y="262" width="22" height="28" rx="10" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <!-- Arm detail -->
+                        <circle cx="28" cy="215" r="3" fill="#444"/>
+
+                        <!-- Right Arm -->
+                        <rect x="198" y="167" width="28" height="95" rx="14" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <rect x="201" y="262" width="22" height="28" rx="10" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <circle cx="212" cy="215" r="3" fill="#444"/>
+
+                        <!-- Hips -->
+                        <circle cx="82" cy="298" r="9" fill="#333" stroke="#444" stroke-width="1"/>
+                        <circle cx="158" cy="298" r="9" fill="#333" stroke="#444" stroke-width="1"/>
+
+                        <!-- Left Leg -->
+                        <rect x="66" y="300" width="32" height="72" rx="12" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <rect x="60" y="372" width="44" height="18" rx="9" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <circle cx="82" cy="340" r="3" fill="#444"/>
+
+                        <!-- Right Leg -->
+                        <rect x="142" y="300" width="32" height="72" rx="12" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <rect x="136" y="372" width="44" height="18" rx="9" fill="url(#mGrad)" stroke="#555" stroke-width="1"/>
+                        <circle cx="158" cy="340" r="3" fill="#444"/>
+                    </svg>
+                </div>
+
+                <div class="robot-floor-glow"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== READING PAGE ===== -->
+    <div id="reading-page">
+        <div class="reading-header">
+            <button class="back-btn" onclick="goBack()">← KEMBALI</button>
+            <div class="reading-progress-container">
+                <div class="reading-progress-label">Progress Membaca</div>
+                <div class="reading-progress-bar">
+                    <div class="reading-progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="chapter-title-header" id="chapterTitleHeader"></div>
+        </div>
+        <div class="reading-content" id="readingContent">
+            <div class="reading-inner" id="readingInner"></div>
+        </div>
+    </div>
+
+    <!-- ===== CREDIT PAGE ===== -->
+    <div id="credit-page">
+        <div class="credit-container">
+            <img src="https://i.ibb.co.com/LdtMvwww/file-00000000a59471fa8d27bc833c770521.png" alt="Impulse" class="credit-logo-img">
+            <div class="credit-logo-text">IMPULSE</div>
+            <div class="credit-divider"></div>
+            <div class="credit-info-block">
+                <div class="credit-row">
+                    <span class="credit-label">Nama Pengembang</span>
+                    <span class="credit-value">Impulse</span>
+                </div>
+                <div class="credit-row">
+                    <span class="credit-label">Tentang Apa?</span>
+                    <span class="credit-value">Bagaimana cara AI bisa di-jailbreak</span>
+                </div>
+                <div class="credit-row">
+                    <span class="credit-label">Tujuan</span>
+                    <span class="credit-value">Edukasi & Kesadaran Keamanan AI</span>
+                </div>
+            </div>
+            <div class="credit-note">
+                <p>📌 Untuk pembahasan yang mirip seperti ini, langsung saja masuk ke community untuk mempelajari hal-hal terkait.</p>
+            </div>
+            <a href="https://linktr.ee/Impluseofficial" target="_blank" class="credit-link">🌐 LINKTREE — Impulse Official</a>
+            <div class="credit-thanks">TERIMA KASIH</div>
+            <button class="credit-back-btn" onclick="goBackFromCredit()">← Kembali ke Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="faqModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeFAQ()">✕</button>
+        <div class="modal-title">FAQ</div>
+        <div class="faq-item">
+            <div class="faq-q">Q: Apa tujuan website ini?</div>
+            <div class="faq-a">Website ini dibuat untuk tujuan edukasi, memberikan pemahaman tentang apa itu jailbreak AI, bagaimana cara kerjanya, dan mengapa keamanan AI penting.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Q: Apakah website ini mengajarkan cara melakukan jailbreak?</div>
+            <div class="faq-a">Tidak. Website ini hanya menjelaskan konsep dan teori di balik jailbreak AI untuk meningkatkan kesadaran dan pemahaman pengguna.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Q: Siapa yang membuat website ini?</div>
+            <div class="faq-a">Website ini dikembangkan oleh Impulse sebagai proyek edukasi tentang keamanan dan etika kecerdasan buatan.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Q: Apakah ada bab yang terkunci?</div>
+            <div class="faq-a">Ya, sistem membaca dirancang berurutan. Anda harus menyelesaikan bab sebelumnya untuk membuka bab berikutnya.</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="aboutModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeAbout()">✕</button>
+        <div class="modal-title">TENTANG</div>
+        <p class="about-text">
+            <strong style="color:#fff;">IMPULSE</strong> adalah platform edukasi interaktif yang membahas konsep jailbreak pada kecerdasan buatan (AI).
+            <br><br>
+            Website ini dibuat untuk memberitahu apa itu jailbreak dalam AI — bagaimana sistem AI bekerja, mengapa pembatasan diperlukan, dan bagaimana keamanan AI dapat terus ditingkatkan.
+            <br><br>
+            Semua konten bersifat edukatif dan tidak bertujuan untuk mengajarkan cara menyalahgunakan teknologi AI. Tujuan utama adalah meningkatkan kesadaran dan pemahaman pengguna tentang keamanan kecerdasan buatan di era modern.
+            <br><br>
+            <span style="color:#555;font-size:12px;font-family:'Share Tech Mono',monospace;">— Impulse Team</span>
+        </p>
+    </div>
+</div>
+
+<script>
+// ===== STATE =====
+const state = {
+    completed: JSON.parse(localStorage.getItem('impulse_done') || '[]'),
+    currentCh: 0,
+    musicOn: false
+};
+
+const chapters = [
+    { num: '01', title: 'Apa itu Jailbreak AI?', sub: 'Pengenalan dasar konsep jailbreak' },
+    { num: '02', title: 'Mengapa AI Dapat Di-Jailbreak?', sub: 'Faktor dan alasan teknis' },
+    { num: '03', title: 'Credits', sub: 'Informasi pengembang' }
+];
+
+// ===== INTRO PARTICLES =====
+(function initIntroCanvas() {
+    const c = document.getElementById('introCanvas');
+    const ctx = c.getContext('2d');
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    const pts = [];
+    for (let i = 0; i < 60; i++) {
+        pts.push({
+            x: Math.random() * c.width,
+            y: Math.random() * c.height,
+            s: Math.random() * 1.5 + 0.3,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            o: Math.random() * 0.4 + 0.1
+        });
+    }
+    function draw() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        pts.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > c.width) p.vx *= -1;
+            if (p.y < 0 || p.y > c.height) p.vy *= -1;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${p.o})`;
+            ctx.fill();
+        });
+        for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+                const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+                if (d < 100) {
+                    ctx.beginPath();
+                    ctx.moveTo(pts[i].x, pts[i].y);
+                    ctx.lineTo(pts[j].x, pts[j].y);
+                    ctx.strokeStyle = `rgba(255,255,255,${0.04 * (1 - d / 100)})`;
+                    ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
+
+// Intro -> Main transition
+setTimeout(() => {
+    document.getElementById('intro-screen').classList.add('fade-out');
+    document.getElementById('main-app').classList.add('visible');
+    setTimeout(() => { document.getElementById('intro-screen').style.display = 'none'; }, 1200);
+}, 5500);
+
+// ===== BG CANVAS PARTICLES =====
+const bgC = document.getElementById('bg-canvas');
+const bgCtx = bgC.getContext('2d');
+let bgParts = [];
+
+function resizeBg() { bgC.width = window.innerWidth; bgC.height = window.innerHeight; }
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+for (let i = 0; i < 70; i++) {
+    bgParts.push({
+        x: Math.random() * bgC.width, y: Math.random() * bgC.height,
+        s: Math.random() * 1.2 + 0.4,
+        vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
+        o: Math.random() * 0.25 + 0.05
+    });
+}
+
+function drawBg() {
+    bgCtx.clearRect(0, 0, bgC.width, bgC.height);
+    bgParts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > bgC.width) p.vx *= -1;
+        if (p.y < 0 || p.y > bgC.height) p.vy *= -1;
+        bgCtx.beginPath();
+        bgCtx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+        bgCtx.fillStyle = `rgba(255,255,255,${p.o})`;
+        bgCtx.fill();
+    });
+    for (let i = 0; i < bgParts.length; i++) {
+        for (let j = i + 1; j < bgParts.length; j++) {
+            const d = Math.hypot(bgParts[i].x - bgParts[j].x, bgParts[i].y - bgParts[j].y);
+            if (d < 110) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(bgParts[i].x, bgParts[i].y);
+                bgCtx.lineTo(bgParts[j].x, bgParts[j].y);
+                bgCtx.strokeStyle = `rgba(255,255,255,${0.025 * (1 - d / 110)})`;
+                bgCtx.lineWidth = 0.5;
+                bgCtx.stroke();
+            }
+        }
+    }
+    requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ===== DATA STREAM COLUMNS =====
+(function createDataStreams() {
+    const cont = document.getElementById('dataStreams');
+    const chars = '01アイウエオカキクケコ{}[]<>/\\=+-*&^%$#@!~';
+    for (let i = 0; i < 15; i++) {
+        const col = document.createElement('div');
+        col.className = 'data-column';
+        col.style.left = (Math.random() * 100) + '%';
+        col.style.animationDuration = (15 + Math.random() * 20) + 's';
+        col.style.animationDelay = (Math.random() * 10) + 's';
+        let t = '';
+        for (let j = 0; j < 40; j++) {
+            t += chars[Math.floor(Math.random() * chars.length)] + '\n';
+        }
+        col.textContent = t;
+        cont.appendChild(col);
+    }
+})();
+
+// ===== ROBOT DIGITAL PARTICLES =====
+(function createRobotParticles() {
+    const cont = document.getElementById('robotParticles');
+    if (!cont) return;
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'robot-digital-particle';
+        p.style.left = (30 + Math.random() * 60) + '%';
+        p.style.top = (20 + Math.random() * 60) + '%';
+        p.style.animationDelay = (Math.random() * 3) + 's';
+        p.style.animationDuration = (2 + Math.random() * 2) + 's';
+        p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+        cont.appendChild(p);
+    }
+})();
+
+// ===== ROBOT EYE TRACKING =====
+document.addEventListener('mousemove', e => {
+    const rc = document.getElementById('robotContainer');
+    if (!rc) return;
+    const rect = rc.getBoundingClientRect();
+    const dx = (e.clientX - rect.left - rect.width / 2) / window.innerWidth * 4;
+    const dy = (e.clientY - rect.top - rect.height / 2) / window.innerHeight * 3;
+    const el = document.getElementById('eyeL');
+    const er = document.getElementById('eyeR');
+    if (el) { el.setAttribute('cx', 98 + dx); el.setAttribute('cy', 78 + dy); }
+    if (er) { er.setAttribute('cx', 142 + dx); er.setAttribute('cy', 78 + dy); }
+});
+
+// ===== MUSIC =====
+const bgMusic = document.getElementById('bgMusic');
+bgMusic.volume = 0;
+
+function toggleMusic() {
+    state.musicOn = !state.musicOn;
+    const icon = document.getElementById('musicIcon');
+    const bars = document.getElementById('musicBars');
+    const label = document.getElementById('musicLabel');
+
+    if (state.musicOn) {
+        bgMusic.play().catch(() => {});
+        fadeAudio(bgMusic, 0, 0.25, 1500);
+        icon.classList.add('spinning');
+        bars.classList.add('playing');
+        label.textContent = 'PLAYING';
+    } else {
+        fadeAudio(bgMusic, bgMusic.volume, 0, 800, () => { bgMusic.pause(); });
+        icon.classList.remove('spinning');
+        bars.classList.remove('playing');
+        label.textContent = 'PAUSED';
+    }
+}
+
+function fadeAudio(audio, from, to, duration, cb) {
+    const steps = 30;
+    const stepTime = duration / steps;
+    const stepVal = (to - from) / steps;
+    let current = from;
+    let step = 0;
+    const interval = setInterval(() => {
+        step++;
+        current += stepVal;
+        audio.volume = Math.max(0, Math.min(1, current));
+        if (step >= steps) {
+            clearInterval(interval);
+            audio.volume = Math.max(0, Math.min(1, to));
+            if (cb) cb();
+        }
+    }, stepTime);
+}
+
+// ===== CHAPTER LIST =====
+function renderChapters() {
+    const list = document.getElementById('chapter-list');
+    list.innerHTML = '';
+    chapters.forEach((ch, i) => {
+        const done = state.completed.includes(i);
+        const locked = i > 0 && !state.completed.includes(i - 1);
+        const item = document.createElement('div');
+        item.className = `chapter-item ${done ? 'completed' : ''} ${locked ? 'locked' : ''}`;
+        item.innerHTML = `
+            <div class="chapter-num">${ch.num}</div>
+            <div class="chapter-info"><h4>${ch.title}</h4><p>${ch.sub}</p></div>
+            <div class="chapter-status">${done ? '✓' : locked ? '🔒' : '→'}</div>
+        `;
+        item.onclick = () => {
+            if (locked) { notify('🔒 Selesaikan bab sebelumnya dahulu'); return; }
+            openChapter(i);
+        };
+        list.appendChild(item);
+    });
+}
+renderChapters();
+
+// ===== NOTIFICATION =====
+function notify(msg) {
+    const n = document.getElementById('notification');
+    n.textContent = msg;
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 3000);
+}
+
+// ===== NAVIGATION =====
+function startReading() {
+    const first = chapters.findIndex((_, i) => !state.completed.includes(i));
+    openChapter(first >= 0 ? first : 0);
+}
+
+function openChapter(i) {
+    if (i === 2) {
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('credit-page').classList.add('active');
+        return;
+    }
+    state.currentCh = i;
+    document.getElementById('reading-page').classList.add('active');
+    document.getElementById('chapterTitleHeader').textContent = 'BAB ' + chapters[i].num;
+    document.getElementById('progressFill').style.width = '0%';
+
+    const inner = document.getElementById('readingInner');
+    inner.innerHTML = i === 0 ? getChapter1() : getChapter2();
+
+    const rc = document.getElementById('readingContent');
+    rc.scrollTop = 0;
+
+    // Scroll handler
+    rc.onscroll = () => {
+        const pct = (rc.scrollTop / (rc.scrollHeight - rc.clientHeight)) * 100;
+        document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
+        document.querySelectorAll('.content-section').forEach(s => {
+            if (s.getBoundingClientRect().top < window.innerHeight * 0.88) s.classList.add('visible');
+        });
+    };
+
+    // Initial reveal
+    setTimeout(() => {
+        document.querySelectorAll('.content-section').forEach((s, idx) => {
+            setTimeout(() => { if (s.getBoundingClientRect().top < window.innerHeight) s.classList.add('visible'); }, idx * 150);
+        });
+        initVisuals();
+        if (i === 0) setTimeout(initQuiz, 200);
+        if (i === 1) setTimeout(initMemory, 200);
+    }, 300);
+}
+
+function goBack() {
+    document.getElementById('reading-page').classList.remove('active');
+    document.getElementById('landing-page').style.display = 'flex';
+    renderChapters();
+}
+
+function goBackFromCredit() {
+    document.getElementById('credit-page').classList.remove('active');
+    document.getElementById('landing-page').style.display = 'flex';
+    renderChapters();
+}
+
+function completeCh(i) {
+    if (!state.completed.includes(i)) {
+        state.completed.push(i);
+        localStorage.setItem('impulse_done', JSON.stringify(state.completed));
+    }
+    notify('✓ Bab ' + chapters[i].num + ' selesai!');
+    setTimeout(goBack, 1200);
+}
+
+// ===== MODALS =====
+function showFAQ() { document.getElementById('faqModal').classList.add('active'); }
+function closeFAQ() { document.getElementById('faqModal').classList.remove('active'); }
+function showAbout() { document.getElementById('aboutModal').classList.add('active'); }
+function closeAbout() { document.getElementById('aboutModal').classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+
+// ===== CHAPTER 1 CONTENT =====
+function getChapter1() {
+    return `
+    <div class="chapter-header">
+        <div class="chapter-badge">Bab 01</div>
+        <h1 class="chapter-main-title">Apa itu Jailbreak AI?</h1>
+        <p class="chapter-subtitle">Memahami konsep dasar jailbreak pada kecerdasan buatan</p>
+    </div>
+
+    <div class="content-section">
+        <h2>Pengenalan Jailbreak AI</h2>
+        <p>Dalam perkembangan teknologi kecerdasan buatan (<span class="highlight-text">Artificial Intelligence/AI</span>), banyak sistem AI dirancang dengan aturan, batasan, dan mekanisme keamanan tertentu. Aturan tersebut dibuat agar AI dapat memberikan respons yang <span class="highlight-text">aman, etis, dan sesuai dengan tujuan penggunaannya</span>. Namun, terdapat istilah yang dikenal sebagai <span class="highlight-text">jailbreak AI</span>, yaitu sebuah metode atau upaya yang dilakukan untuk melewati, mengurangi, atau memanipulasi batasan yang telah diterapkan pada sistem AI.</p>
+        <p>Istilah ini muncul seiring dengan semakin canggihnya model-model AI generatif yang digunakan secara luas oleh masyarakat. Setiap kali sebuah model AI dirilis ke publik, selalu ada pihak yang mencoba menguji batas kemampuannya, baik untuk tujuan riset maupun sekadar rasa ingin tahu.</p>
+    </div>
+
+    <div class="content-section">
+        <img src="https://i.ibb.co.com/yFgdh6Vc/pngtree-thinking-robot-png-image-15573149.png" alt="AI Thinking" class="content-image" style="max-width:320px;margin:20px auto;display:block;">
+        <div class="image-caption">Ilustrasi AI sedang memproses informasi</div>
+    </div>
+
+    <div class="content-section">
+        <p>Secara sederhana, jailbreak AI dapat diibaratkan seperti seseorang yang mencoba <span class="highlight-text">membuka kunci pembatas</span> pada sebuah sistem agar sistem tersebut melakukan sesuatu di luar aturan normalnya. Bayangkan sebuah brankas digital dengan beberapa lapisan kunci — jailbreak adalah upaya untuk menembus lapisan-lapisan tersebut.</p>
+        <div class="info-box">
+            <p>Pada perangkat elektronik seperti ponsel, istilah "jailbreak" awalnya digunakan untuk menggambarkan proses menghapus pembatas sistem operasi agar pengguna memiliki akses yang lebih luas. Dalam konteks kecerdasan buatan, konsepnya serupa, tetapi yang dimodifikasi bukan perangkat keras melainkan <span class="highlight-text">perilaku atau aturan respons AI</span>. Perbedaan utamanya adalah jailbreak pada AI bersifat linguistik — dilakukan melalui bahasa dan instruksi, bukan melalui kode pemrograman tingkat rendah.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2>Mengapa AI Memiliki Pembatasan?</h2>
+        <p>Sebelum memahami jailbreak AI lebih jauh, penting untuk mengetahui mengapa AI memiliki pembatasan. Sebuah AI umumnya dibuat dengan berbagai lapisan pengamanan untuk beberapa tujuan berikut:</p>
+        <ul>
+            <li>Melindungi pengguna dari informasi berbahaya atau menyesatkan</li>
+            <li>Mencegah penyebaran konten yang melanggar hukum atau norma sosial</li>
+            <li>Mengurangi risiko penyalahgunaan teknologi untuk tujuan destruktif</li>
+            <li>Menjaga privasi dan keamanan data pengguna secara ketat</li>
+            <li>Memastikan penggunaan AI tetap sesuai norma, etika, dan regulasi yang berlaku</li>
+            <li>Mencegah AI dari menghasilkan konten yang dapat memicu konflik atau kekerasan</li>
+        </ul>
+        <p>Tanpa adanya pembatasan tersebut, sistem AI berpotensi digunakan secara tidak bertanggung jawab atau menghasilkan respons yang dapat merugikan pengguna dan masyarakat secara luas. Oleh karena itu, pengembang AI menginvestasikan banyak waktu dan sumber daya untuk membangun sistem keamanan yang kuat.</p>
+    </div>
+
+    <div class="content-section">
+        <div class="content-image-row">
+            <img src="https://i.ibb.co.com/39h8BW4v/images-14.jpg" alt="Web Security">
+            <img src="https://i.ibb.co.com/DSyjLQZ/images-15.jpg" alt="Firewall">
+        </div>
+        <div class="image-caption">Ilustrasi keamanan web dan sistem firewall pada AI</div>
+    </div>
+
+    <div class="content-section">
+        <h2>Bagaimana Jailbreak AI Bekerja?</h2>
+        <p>Jailbreak AI biasanya dilakukan dengan memanfaatkan cara AI memahami bahasa dan instruksi. Beberapa pengguna mencoba menyusun perintah tertentu yang disebut <span class="highlight-text">prompt</span> agar AI menafsirkan permintaan secara berbeda dari batasan yang telah ditetapkan.</p>
+        <p>Proses ini sering kali melibatkan teknik-teknik kreatif dalam penggunaan bahasa, seperti penggunaan skenario fiktif, role-playing, atau penyusunan instruksi berlapis yang membingungkan sistem keamanan AI. Para peneliti keamanan menyebutnya sebagai <span class="highlight-text">adversarial prompting</span> — seni menyusun perintah yang dirancang untuk mengeksploitasi kelemahan model.</p>
+        <p>Tujuan dari upaya tersebut dapat beragam, misalnya:</p>
+        <ul>
+            <li>Menguji batas kemampuan dan ketahanan AI terhadap manipulasi</li>
+            <li>Meneliti keamanan sistem AI untuk keperluan akademik</li>
+            <li>Mencari kelemahan model kecerdasan buatan agar dapat diperbaiki</li>
+            <li>Mengubah perilaku AI agar memberikan respons yang berbeda dari normal</li>
+            <li>Memahami arsitektur dan cara kerja internal model AI</li>
+        </ul>
+        <div class="info-box">
+            <p>Perlu dipahami bahwa tidak semua eksperimen terhadap AI memiliki tujuan negatif. Dalam dunia penelitian keamanan siber, pengujian semacam ini sering dilakukan secara etis dan terstruktur — dikenal sebagai <span class="highlight-text">red teaming</span> — untuk menemukan kelemahan agar sistem dapat diperbaiki sebelum dieksploitasi oleh pihak yang tidak bertanggung jawab.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div class="visual-element" id="vis-neural"></div>
+    </div>
+
+    <div class="content-section">
+        <h2>Jenis-Jenis Jailbreak AI</h2>
+        <p>Secara umum, jailbreak AI dapat dibagi menjadi beberapa kategori utama yang masing-masing memiliki karakteristik dan pendekatan berbeda:</p>
+
+        <div class="category-card">
+            <h4>1. Prompt-Based Jailbreak</h4>
+            <p>Metode ini menggunakan rangkaian instruksi atau teks tertentu untuk mencoba memengaruhi perilaku AI. Pendekatan ini memanfaatkan cara model memahami konteks percakapan. Contohnya termasuk penggunaan skenario "roleplay" atau instruksi yang dikemas dalam format cerita fiksi untuk melewati filter keamanan.</p>
+        </div>
+
+        <div class="category-card">
+            <h4>2. System Manipulation</h4>
+            <p>Jenis ini mencoba memengaruhi konfigurasi atau cara sistem bekerja sehingga AI merespons secara berbeda dari perilaku normalnya. Ini bisa melibatkan manipulasi system prompt atau parameter teknis yang mengatur perilaku model AI.</p>
+        </div>
+
+        <div class="category-card">
+            <h4>3. Adversarial Input</h4>
+            <p>Metode ini menggunakan pola masukan yang dirancang secara khusus agar AI mengalami kesalahan interpretasi atau menghasilkan respons yang tidak diharapkan. Teknik ini sering menggunakan encoding khusus, karakter tersembunyi, atau pola linguistik yang membingungkan model.</p>
+        </div>
+
+        <div class="category-card">
+            <h4>4. Research-Oriented Jailbreak</h4>
+            <p>Dilakukan oleh peneliti keamanan atau pengembang untuk menguji kekuatan sistem pertahanan AI dan meningkatkan kualitas keamanan model. Hasil dari penelitian ini biasanya dipublikasikan dalam bentuk paper akademik dan dilaporkan ke pengembang AI untuk perbaikan.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <img src="https://i.ibb.co.com/Wvbcb1fH/images-13.jpg" alt="AI Chip" class="content-image" style="max-width:400px;margin:20px auto;display:block;">
+        <div class="image-caption">Chip AI — Representasi perangkat keras kecerdasan buatan</div>
+    </div>
+
+    <div class="content-section">
+        <h2>Dampak Jailbreak AI</h2>
+        <p>Jailbreak AI dapat memberikan dampak positif maupun negatif terhadap ekosistem teknologi dan masyarakat. Penting untuk memahami kedua sisi ini agar kita dapat bersikap bijak dalam menyikapi fenomena ini.</p>
+
+        <div class="impact-grid">
+            <div class="impact-card positive">
+                <h4>✦ Dampak Positif</h4>
+                <ul>
+                    <li>Membantu menemukan kelemahan keamanan secara proaktif</li>
+                    <li>Meningkatkan sistem perlindungan AI melalui iterasi perbaikan</li>
+                    <li>Mendukung penelitian keamanan dan kemajuan kecerdasan buatan</li>
+                    <li>Membantu pengembang memperbaiki model AI secara berkelanjutan</li>
+                    <li>Meningkatkan transparansi tentang cara kerja AI</li>
+                </ul>
+            </div>
+            <div class="impact-card negative">
+                <h4>✦ Dampak Negatif</h4>
+                <ul>
+                    <li>Potensi penyalahgunaan teknologi untuk tujuan merugikan</li>
+                    <li>Dapat menghasilkan informasi yang tidak aman atau berbahaya</li>
+                    <li>Risiko pelanggaran aturan penggunaan dan hukum yang berlaku</li>
+                    <li>Dapat mengurangi kepercayaan publik terhadap keandalan AI</li>
+                    <li>Membuka celah untuk eksploitasi oleh aktor jahat</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2>Kesimpulan</h2>
+        <p><span class="highlight-text">Jailbreak AI</span> merupakan upaya untuk melewati atau memengaruhi batasan yang diterapkan pada sistem kecerdasan buatan. Konsep ini berkaitan erat dengan keamanan, penelitian, dan penggunaan AI secara bertanggung jawab. Memahami jailbreak AI penting karena teknologi kecerdasan buatan terus berkembang dan semakin banyak digunakan dalam kehidupan sehari-hari.</p>
+        <p>Seiring dengan evolusi model AI yang semakin canggih, pemahaman tentang keamanan dan keterbatasan sistem menjadi semakin krusial. Baik pengembang, peneliti, maupun pengguna biasa perlu memiliki awareness yang memadai tentang topik ini.</p>
+        <div class="info-box">
+            <p>Pemahaman mengenai konsep ini bukan bertujuan untuk menyalahgunakan AI, tetapi agar pengguna mengetahui bagaimana sistem AI bekerja, mengapa batasan diperlukan, dan bagaimana keamanan AI dapat terus ditingkatkan demi kebaikan bersama.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div class="minigame-container" id="quiz-container">
+            <div class="minigame-title">🎮 QUIZ INTERAKTIF — Bab 1</div>
+            <div class="minigame-desc">Uji pemahamanmu! Jawab 5 pertanyaan berikut.</div>
+            <div id="quiz-area">
+                <div class="quiz-question" id="q-question"></div>
+                <div class="quiz-options" id="q-options"></div>
+                <div class="quiz-result" id="q-result"></div>
+                <div class="quiz-score" id="q-score"></div>
+                <button class="quiz-next-btn" id="q-next" onclick="nextQuizQ()">Selanjutnya →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="complete-section">
+        <button class="complete-btn" onclick="completeCh(0)">✓ SELESAI MEMBACA BAB 1</button>
+    </div>`;
+}
+
+// ===== CHAPTER 2 CONTENT =====
+function getChapter2() {
+    return `
+    <div class="chapter-header">
+        <div class="chapter-badge">Bab 02</div>
+        <h1 class="chapter-main-title">Mengapa AI Dapat Di-Jailbreak?</h1>
+        <p class="chapter-subtitle">Memahami alasan dan faktor teknis di balik kelemahan sistem AI</p>
+    </div>
+
+    <div class="content-section">
+        <h2>Pendahuluan</h2>
+        <p>Setiap sistem kecerdasan buatan (<span class="highlight-text">Artificial Intelligence/AI</span>) dirancang dengan aturan dan mekanisme keamanan untuk mengontrol cara sistem merespons pengguna. Meskipun demikian, <span class="highlight-text">tidak ada sistem teknologi yang sepenuhnya sempurna</span>. Sama seperti perangkat lunak lain yang dapat memiliki celah atau kelemahan, AI juga dapat memiliki keterbatasan tertentu yang memungkinkan pengguna mencoba memengaruhi perilakunya.</p>
+        <p>Perlu dipahami bahwa kerentanan ini bukan berarti AI dirancang dengan buruk. Sebaliknya, ini adalah konsekuensi alami dari kompleksitas teknologi yang berusaha memahami bahasa manusia — sesuatu yang bahkan sesama manusia pun terkadang kesulitan untuk melakukannya dengan sempurna.</p>
+    </div>
+
+    <div class="content-section">
+        <div class="info-box">
+            <p>Jailbreak pada AI tidak selalu terjadi karena sistem tersebut "rusak". Dalam banyak kasus, hal tersebut berkaitan dengan cara AI memahami bahasa, konteks, dan instruksi yang diberikan pengguna. Ini lebih merupakan <span class="highlight-text">keterbatasan fundamental</span> dalam cara AI memproses informasi.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <img src="https://i.ibb.co.com/yFgdh6Vc/pngtree-thinking-robot-png-image-15573149.png" alt="AI Thinking" class="content-image" style="max-width:300px;margin:20px auto;display:block;">
+        <div class="image-caption">AI memproses dan menganalisis pola bahasa</div>
+    </div>
+
+    <div class="content-section">
+        <h2>AI Bekerja Berdasarkan Pola</h2>
+        <p>AI modern pada dasarnya bekerja dengan <span class="highlight-text">mempelajari pola dari data dalam jumlah sangat besar</span> — seringkali mencapai triliunan kata dari berbagai sumber. Sistem AI memprediksi respons yang dianggap paling sesuai berdasarkan pola statistik yang telah dipelajarinya.</p>
+        <p>Proses ini disebut <span class="highlight-text">machine learning</span>, di mana model AI dilatih menggunakan dataset masif untuk mengenali hubungan antara input dan output yang diharapkan. Namun, pelatihan berbasis pola ini memiliki implikasi penting:</p>
+        <ul>
+            <li>AI menafsirkan instruksi secara berbeda dari yang dimaksud pengguna karena ambiguitas bahasa</li>
+            <li>AI mengalami kebingungan terhadap konteks tertentu yang jarang muncul dalam data pelatihan</li>
+            <li>AI menghadapi instruksi yang sangat kompleks dengan multiple layer makna</li>
+            <li>AI memberikan respons yang tidak sepenuhnya sesuai dengan batasan sistem karena konflik prioritas internal</li>
+            <li>AI tidak benar-benar "memahami" makna — hanya mencocokkan pola statistik</li>
+        </ul>
+        <p>Kemampuan AI dalam memahami bahasa memang sangat canggih, tetapi pemahaman tersebut <span class="highlight-text">berbeda secara fundamental dengan cara manusia memahami situasi secara alami</span>. AI tidak memiliki kesadaran, intuisi, atau common sense yang dimiliki manusia.</p>
+    </div>
+
+    <div class="content-section">
+        <div class="visual-element" id="vis-pattern"></div>
+    </div>
+
+    <div class="content-section">
+        <h2>Kompleksitas Bahasa Manusia</h2>
+        <p>Bahasa manusia memiliki banyak variasi, makna ganda, serta konteks yang berubah-ubah secara dinamis. Satu kalimat dapat memiliki arti yang berbeda tergantung situasi, budaya, nada bicara, dan cara penyampaiannya.</p>
+        <p>Pertimbangkan fenomena linguistik berikut yang menjadi tantangan besar bagi AI:</p>
+        <ul>
+            <li><span class="highlight-text">Sarkasme dan ironi</span> — makna yang berlawanan dengan kata-kata yang diucapkan</li>
+            <li><span class="highlight-text">Konteks budaya</span> — frasa yang memiliki arti berbeda di budaya berbeda</li>
+            <li><span class="highlight-text">Ambiguitas semantik</span> — kata atau kalimat dengan multiple interpretasi</li>
+            <li><span class="highlight-text">Implikatur</span> — pesan yang tersirat tanpa dikatakan secara eksplisit</li>
+            <li><span class="highlight-text">Metafora dan idiom</span> — ekspresi yang maknanya tidak literal</li>
+        </ul>
+        <div class="info-box">
+            <p>Seseorang dapat menyampaikan pertanyaan secara langsung, tidak langsung, menggunakan perumpamaan, cerita, atau bentuk percakapan tertentu. Semua variasi ini menjadi tantangan besar bagi AI yang harus memproses setiap kemungkinan sambil tetap menjaga keamanan.</p>
+        </div>
+        <p>Semakin kompleks bahasa yang digunakan, semakin besar tantangan bagi AI untuk menjaga respons agar tetap sesuai dengan aturan. Inilah mengapa beberapa teknik jailbreak memanfaatkan <span class="highlight-text">kreativitas linguistik</span> untuk melewati filter keamanan.</p>
+    </div>
+
+    <div class="content-section">
+        <div class="content-image-row">
+            <img src="https://i.ibb.co.com/Wvbcb1fH/images-13.jpg" alt="AI Chip">
+            <img src="https://i.ibb.co.com/39h8BW4v/images-14.jpg" alt="Security">
+        </div>
+        <div class="image-caption">Teknologi chip AI dan sistem keamanan modern</div>
+    </div>
+
+    <div class="content-section">
+        <h2>Keterbatasan Sistem Keamanan AI</h2>
+        <p>Sistem keamanan AI dibuat untuk mengurangi risiko penyalahgunaan, tetapi sistem tersebut tetap memiliki batas kemampuan tertentu. Tidak ada sistem pertahanan yang 100% sempurna, dan ini berlaku juga untuk keamanan AI.</p>
+        <p>Beberapa faktor yang dapat memengaruhi hal ini:</p>
+        <ul>
+            <li>Jumlah kemungkinan percakapan manusia praktis tidak terbatas — mustahil memprediksi semua skenario</li>
+            <li>Pengguna dapat menggunakan berbagai gaya bahasa, encoding, dan format komunikasi</li>
+            <li>AI harus menyeimbangkan antara membantu pengguna secara efektif dan menjaga keamanan</li>
+            <li>Sistem keamanan harus terus diperbarui seiring munculnya teknik bypass baru</li>
+            <li>Trade-off antara keamanan dan kegunaan — terlalu ketat membuat AI tidak berguna</li>
+            <li>Evolusi bahasa dan munculnya istilah-istilah baru yang belum dipelajari model</li>
+        </ul>
+        <p>Karena banyaknya kemungkinan interaksi, pengembang terus melakukan peningkatan keamanan melalui proses yang dikenal sebagai <span class="highlight-text">iterative safety training</span> — siklus berkelanjutan dari pengujian, penemuan celah, dan perbaikan.</p>
+    </div>
+
+    <div class="content-section">
+        <img src="https://i.ibb.co.com/DSyjLQZ/images-15.jpg" alt="Firewall" class="content-image" style="max-width:400px;margin:20px auto;display:block;">
+        <div class="image-caption">Lapisan firewall dan proteksi dalam sistem AI</div>
+    </div>
+
+    <div class="content-section">
+        <h2>Pengujian dan Penelitian Keamanan</h2>
+        <p>Tidak semua upaya terhadap jailbreak dilakukan dengan tujuan buruk. Dalam dunia teknologi dan keamanan siber, peneliti sering menguji sistem AI secara sistematis dan etis untuk:</p>
+        <ul>
+            <li>Menemukan kelemahan sistem sebelum pihak yang tidak bertanggung jawab menemukannya</li>
+            <li>Meningkatkan keamanan model AI untuk generasi berikutnya</li>
+            <li>Memahami cara AI merespons kondisi edge case yang tidak biasa</li>
+            <li>Membantu pengembang memperbaiki sistem melalui laporan kerentanan terstruktur</li>
+            <li>Mengembangkan standar keamanan baru untuk industri AI</li>
+            <li>Mempublikasikan temuan dalam jurnal akademik untuk kemajuan ilmu pengetahuan</li>
+        </ul>
+        <div class="info-box">
+            <p>Pengujian seperti ini — yang dikenal sebagai <span class="highlight-text">AI Red Teaming</span> — membantu membuat AI menjadi lebih kuat terhadap potensi penyalahgunaan. Perusahaan-perusahaan AI besar bahkan membayar peneliti keamanan melalui program bug bounty untuk menemukan dan melaporkan kerentanan.</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2>Kesimpulan</h2>
+        <p>AI dapat mengalami jailbreak karena sistem kecerdasan buatan <span class="highlight-text">bekerja berdasarkan pola bahasa</span>, memiliki keterbatasan dalam memahami konteks secara sempurna, serta menghadapi kompleksitas komunikasi manusia yang sangat luas dan terus berevolusi.</p>
+        <p>Selain itu, tidak ada sistem teknologi yang sepenuhnya bebas dari potensi kelemahan — ini adalah prinsip fundamental dalam keamanan siber. Memahami alasan mengapa AI dapat di-jailbreak membantu pengguna memahami bahwa <span class="highlight-text">keamanan AI merupakan proses yang terus berkembang</span> dan terus ditingkatkan dari waktu ke waktu.</p>
+        <p>Yang terpenting, pemahaman ini harus digunakan untuk kebaikan — untuk membantu membangun AI yang lebih aman, lebih andal, dan lebih bermanfaat bagi seluruh umat manusia.</p>
+    </div>
+
+    <div class="content-section">
+        <div class="minigame-container">
+            <div class="minigame-title">🧠 MEMORY MATCH — Bab 2</div>
+            <div class="minigame-desc">Cocokkan pasangan konsep AI! Temukan semua 6 pasangan.</div>
+            <div class="memory-moves" id="mem-moves">MOVES: 0</div>
+            <div class="memory-grid" id="mem-grid"></div>
+            <div class="quiz-result" id="mem-result"></div>
+            <button class="memory-reset-btn" onclick="initMemory()">🔄 Reset Game</button>
+        </div>
+    </div>
+
+    <div class="complete-section">
+        <button class="complete-btn" onclick="completeCh(1)">✓ SELESAI MEMBACA BAB 2</button>
+    </div>`;
+}
+
+// ===== QUIZ SYSTEM (BAB 1) =====
+const quizData = [
+    { q: 'Apa yang dimaksud dengan jailbreak AI?', opts: ['Menghancurkan hardware AI','Upaya melewati batasan yang diterapkan pada sistem AI','Membuat AI baru dari awal','Menghapus seluruh database AI'], ans: 1 },
+    { q: 'Manakah yang BUKAN tujuan pembatasan pada AI?', opts: ['Melindungi pengguna dari informasi berbahaya','Menjaga privasi dan keamanan data','Membuat AI tidak bisa digunakan sama sekali','Mencegah penyebaran konten menyesatkan'], ans: 2 },
+    { q: 'Apa itu Prompt-Based Jailbreak?', opts: ['Merusak server AI secara fisik','Menggunakan instruksi teks untuk memengaruhi perilaku AI','Mengubah source code model AI','Menghapus memori training AI'], ans: 1 },
+    { q: 'Apa istilah untuk pengujian keamanan AI yang dilakukan secara etis?', opts: ['Blue teaming','Hacking','Red teaming','Cracking'], ans: 2 },
+    { q: 'Dampak positif dari riset jailbreak AI adalah...', opts: ['Membuat AI menjadi tidak bisa digunakan','Membantu menemukan dan memperbaiki kelemahan keamanan','Menghancurkan reputasi perusahaan AI','Membuat AI menjadi lebih lambat'], ans: 1 }
+];
+let qIdx = 0, qScore = 0, qAnswered = false;
+
+function initQuiz() {
+    qIdx = 0; qScore = 0; qAnswered = false;
+    showQ();
+}
+
+function showQ() {
+    if (qIdx >= quizData.length) {
+        document.getElementById('q-question').textContent = '';
+        document.getElementById('q-options').innerHTML = '';
+        document.getElementById('q-result').innerHTML = `<span style="color:#4CAF50;font-size:18px;">🎉 Quiz Selesai!</span>`;
+        document.getElementById('q-score').textContent = `Skor Akhir: ${qScore}/${quizData.length}`;
+        document.getElementById('q-next').style.display = 'none';
+        return;
+    }
+    qAnswered = false;
+    const d = quizData[qIdx];
+    document.getElementById('q-question').textContent = `${qIdx + 1}/${quizData.length}. ${d.q}`;
+    document.getElementById('q-result').textContent = '';
+    document.getElementById('q-score').textContent = `Skor: ${qScore}/${quizData.length}`;
+    document.getElementById('q-next').style.display = 'none';
+
+    const optsEl = document.getElementById('q-options');
+    optsEl.innerHTML = '';
+    d.opts.forEach((o, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'quiz-option';
+        btn.textContent = o;
+        btn.onclick = () => answerQ(i);
+        optsEl.appendChild(btn);
+    });
+}
+
+function answerQ(sel) {
+    if (qAnswered) return;
+    qAnswered = true;
+    const correct = quizData[qIdx].ans;
+    const opts = document.querySelectorAll('#q-options .quiz-option');
+    opts.forEach((o, i) => {
+        o.classList.add('disabled');
+        if (i === correct) o.classList.add('correct');
+        if (i === sel && sel !== correct) o.classList.add('wrong');
+    });
+    if (sel === correct) {
+        qScore++;
+        document.getElementById('q-result').innerHTML = '<span style="color:#4CAF50">✓ Jawaban Benar!</span>';
+    } else {
+        document.getElementById('q-result').innerHTML = '<span style="color:#f44336">✗ Jawaban Salah</span>';
+    }
+    document.getElementById('q-score').textContent = `Skor: ${qScore}/${quizData.length}`;
+    document.getElementById('q-next').style.display = 'inline-block';
+}
+
+function nextQuizQ() {
+    qIdx++;
+    showQ();
+}
+
+// ===== MEMORY GAME (BAB 2) =====
+const memPairs = [
+    { id: 1, a: 'Prompt', b: 'Instruksi Teks' },
+    { id: 2, a: 'Neural Net', b: 'Pola Data' },
+    { id: 3, a: 'Keamanan', b: 'Proteksi AI' },
+    { id: 4, a: 'Bahasa', b: 'Linguistik' },
+    { id: 5, a: 'Red Team', b: 'Uji Keamanan' },
+    { id: 6, a: 'Firewall', b: 'Filter AI' },
+];
+let memCards = [], memFlipped = [], memMatched = 0, memMoves = 0, memLock = false;
+
+function initMemory() {
+    memFlipped = []; memMatched = 0; memMoves = 0; memLock = false;
+    const all = [];
+    memPairs.forEach(p => {
+        all.push({ id: p.id, text: p.a });
+        all.push({ id: p.id, text: p.b });
+    });
+    // Shuffle
+    for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+    }
+    memCards = all;
+
+    const grid = document.getElementById('mem-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    all.forEach((c, i) => {
+        const el = document.createElement('div');
+        el.className = 'memory-card';
+        el.dataset.id = c.id;
+        el.dataset.idx = i;
+        el.innerHTML = `<div class="card-front">?</div><div class="card-back">${c.text}</div>`;
+        el.onclick = () => flipMem(el);
+        grid.appendChild(el);
+    });
+    updateMemMoves();
+    const res = document.getElementById('mem-result');
+    if (res) res.textContent = '';
+}
+
+function flipMem(el) {
+    if (memLock || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+    el.classList.add('flipped');
+    memFlipped.push(el);
+
+    if (memFlipped.length === 2) {
+        memMoves++;
+        updateMemMoves();
+        memLock = true;
+        const [a, b] = memFlipped;
+        if (a.dataset.id === b.dataset.id) {
+            setTimeout(() => {
+                a.classList.add('matched');
+                b.classList.add('matched');
+                memFlipped = [];
+                memLock = false;
+                memMatched++;
+                if (memMatched === memPairs.length) {
+                    document.getElementById('mem-result').innerHTML = `<span style="color:#4CAF50">🎉 Semua pasangan ditemukan! (${memMoves} langkah)</span>`;
+                }
+            }, 400);
+        } else {
+            setTimeout(() => {
+                a.classList.remove('flipped');
+                b.classList.remove('flipped');
+                memFlipped = [];
+                memLock = false;
+            }, 900);
+        }
+    }
+}
+
+function updateMemMoves() {
+    const el = document.getElementById('mem-moves');
+    if (el) el.textContent = `MOVES: ${memMoves}`;
+}
+
+// ===== VISUAL CANVAS ELEMENTS =====
+function initVisuals() {
+    ['vis-neural', 'vis-pattern'].forEach(id => {
+        const cont = document.getElementById(id);
+        if (!cont) return;
+        const cvs = document.createElement('canvas');
+        cvs.width = cont.offsetWidth || 750;
+        cvs.height = 180;
+        cont.innerHTML = '';
+        cont.appendChild(cvs);
+        const c = cvs.getContext('2d');
+        if (id === 'vis-neural') animNeural(c, cvs);
+        else animPattern(c, cvs);
+    });
+}
+
+function animNeural(c, cvs) {
+    const nodes = Array.from({ length: 35 }, () => ({
+        x: Math.random() * cvs.width, y: Math.random() * cvs.height,
+        vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+        r: Math.random() * 2.5 + 1
+    }));
+    (function draw() {
+        c.clearRect(0, 0, cvs.width, cvs.height);
+        nodes.forEach(n => {
+            n.x += n.vx; n.y += n.vy;
+            if (n.x < 0 || n.x > cvs.width) n.vx *= -1;
+            if (n.y < 0 || n.y > cvs.height) n.vy *= -1;
+            c.beginPath();
+            c.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+            c.fillStyle = 'rgba(255,255,255,0.45)';
+            c.fill();
+        });
+        for (let i = 0; i < nodes.length; i++)
+            for (let j = i + 1; j < nodes.length; j++) {
+                const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                if (d < 100) {
+                    c.beginPath();
+                    c.moveTo(nodes[i].x, nodes[i].y);
+                    c.lineTo(nodes[j].x, nodes[j].y);
+                    c.strokeStyle = `rgba(255,255,255,${0.12 * (1 - d / 100)})`;
+                    c.stroke();
+                }
+            }
+        requestAnimationFrame(draw);
+    })();
+}
+
+function animPattern(c, cvs) {
+    let t = 0;
+    const dots = Array.from({ length: 40 }, () => ({
+        x: Math.random() * cvs.width, y: Math.random() * cvs.height, ph: Math.random() * 6.28
+    }));
+    (function draw() {
+        c.clearRect(0, 0, cvs.width, cvs.height);
+        t += 0.012;
+        for (let i = 0; i < 6; i++) {
+            const y = (cvs.height / 7) * (i + 1);
+            c.beginPath();
+            c.moveTo(0, y);
+            for (let x = 0; x < cvs.width; x += 4)
+                c.lineTo(x, y + Math.sin(x * 0.015 + t + i) * 12);
+            c.strokeStyle = 'rgba(255,255,255,0.05)';
+            c.stroke();
+        }
+        dots.forEach(d => {
+            d.x += 0.4;
+            if (d.x > cvs.width) d.x = 0;
+            const dy = d.y + Math.sin(d.x * 0.015 + t + d.ph) * 12;
+            c.beginPath();
+            c.arc(d.x, dy, 1.2, 0, Math.PI * 2);
+            c.fillStyle = 'rgba(255,255,255,0.25)';
+            c.fill();
+        });
+        requestAnimationFrame(draw);
+    })();
+}
+
+// ===== ANTI-COPY =====
+document.addEventListener('contextmenu', e => { e.preventDefault(); notify('⚠ Klik kanan dinonaktifkan'); });
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && ['c','u','s','a'].includes(e.key.toLowerCase())) {
+        e.preventDefault(); notify('⚠ Aksi ini dinonaktifkan');
+    }
+});
+
+// ===== INIT =====
+window.addEventListener('load', renderChapters);
+</script>
+</body>
+</html>
